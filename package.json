@@ -1,0 +1,30 @@
+{
+  "name": "fms",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Fire Management System - Microservices",
+  "workspaces": [
+    "shared",
+    "services/*",
+    "api-gateway"
+  ],
+  "scripts": {
+    "dev:gateway": "npm run dev --workspace=@fms/api-gateway",
+    "dev:auth": "npm run dev --workspace=@fms/auth-service",
+    "dev:customer": "npm run dev --workspace=services/customer",
+    "dev:extinguisher": "npm run dev --workspace=services/extinguisher",
+    "dev:notification": "npm run dev --workspace=services/notification",
+    "dev:payment": "npm run dev --workspace=services/payment",
+    "dev:inspection": "npm run dev --workspace=services/inspection",
+    "dev:rules": "npm run dev --workspace=services/rules",
+    "db:push": "npm run db:push --workspaces --if-present",
+    "db:generate": "npm run db:generate --workspaces --if-present",
+    "db:migrate": "npm run db:migrate --workspaces --if-present"
+  },
+  "devDependencies": {
+    "drizzle-kit": "^0.30.4",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3",
+    "@types/node": "^22.10.1"
+  }
+}
