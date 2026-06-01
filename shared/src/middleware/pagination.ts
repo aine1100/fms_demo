@@ -34,6 +34,10 @@ export const buildPaginatedResponse = <T>(
 
   return {
     data,
+    items: data,
+    total,
+    page,
+    totalPages,
     pagination: {
       page,
       limit,

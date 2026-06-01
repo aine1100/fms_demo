@@ -1,6 +1,23 @@
 import { z } from 'zod';
 import { ExtinguisherType, ExtinguisherStatus } from '@fms/shared';
 
+const isoDateString = z
+  .string()
+  .min(1)
+  .refine((value) => !Number.isNaN(Date.parse(value)), {
+    message: 'Must be a valid date',
+  });
+
+const manufactureDateString = isoDateString.refine((value) => {
+  const date = new Date(value);
+  const today = new Date();
+  date.setHours(0, 0, 0, 0);
+  today.setHours(0, 0, 0, 0);
+  return date <= today;
+}, {
+  message: 'Manufacture date cannot be in the future',
+});
+
 export const createCatalogItemSchema = z.object({
   name: z.string().min(2),
   type: z.nativeEnum(ExtinguisherType),
@@ -16,10 +33,10 @@ export const registerExtinguisherSchema = z.object({
   customerId: z.number().optional(),
   type: z.nativeEnum(ExtinguisherType),
   capacity: z.string(),
-  manufactureDate: z.string().datetime(),
-  expiryDate: z.string().datetime(),
-  lastInspectionDate: z.string().datetime().optional(),
-  nextInspectionDate: z.string().datetime().optional(),
+  manufactureDate: manufactureDateString,
+  expiryDate: isoDateString,
+  lastInspectionDate: isoDateString.optional(),
+  nextInspectionDate: isoDateString.optional(),
   location: z.string().optional(),
 });
 
