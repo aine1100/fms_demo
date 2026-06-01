@@ -5,6 +5,7 @@
   "description": "Fire Management System - Microservices",
   "workspaces": [
     "shared",
+    "packages/database",
     "services/*",
     "api-gateway"
   ],

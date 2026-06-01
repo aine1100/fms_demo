@@ -1,0 +1,27 @@
+{
+  "name": "@fms/database",
+  "version": "1.0.0",
+  "description": "Centralized database schema and migrations for FMS",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "dev": "tsx --watch src/index.ts",
+    "build": "tsc",
+    "db:push": "drizzle-kit push",
+    "db:generate": "drizzle-kit generate",
+    "db:studio": "drizzle-kit studio",
+    "db:drop": "drizzle-kit drop"
+  },
+  "dependencies": {
+    "@fms/shared": "*",
+    "drizzle-orm": "^0.38.4",
+    "pg": "^8.13.1",
+    "dotenv": "^16.4.7"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.1",
+    "drizzle-kit": "^0.30.4",
+    "typescript": "^5.7.3",
+    "tsx": "^4.19.2"
+  }
+}

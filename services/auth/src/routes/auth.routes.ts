@@ -29,6 +29,28 @@ const router = Router();
  *         description: User registered successfully
  */
 router.post('/register', validate(validators.registerSchema), authController.register);
+router.post('/verify', validate(validators.verifyAccountSchema), authController.verifyAccount);
+/**
+ * @swagger
+ * /auth/verify:
+ *   post:
+ *     summary: Verify user account with OTP
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email: { type: string }
+ *               otp: { type: string }
+ *     responses:
+ *       200:
+ *         description: Account verified successfully
+ *       400:
+ *         description: Invalid or expired OTP
+ */
 
 /**
  * @swagger
@@ -72,6 +94,49 @@ router.post('/login', validate(validators.loginSchema), authController.login);
  *         description: Invalid or expired refresh token
  */
 router.post('/refresh', validate(validators.refreshTokenSchema), authController.refresh);
+/**
+ * @swagger
+ * /auth/request-reset:
+ *   post:
+ *     summary: Request password reset OTP
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email: { type: string }
+ *     responses:
+ *       200:
+ *         description: Password reset OTP sent
+ */
+router.post('/request-reset', validate(validators.requestResetSchema), authController.requestPasswordReset);
+
+/**
+ * @swagger
+ * /auth/reset-password:
+ *   post:
+ *     summary: Reset password using OTP
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email: { type: string }
+ *               otp: { type: string }
+ *               newPassword: { type: string }
+ *     responses:
+ *       200:
+ *         description: Password reset successful
+ *       400:
+ *         description: Invalid or expired OTP
+ */
+router.post('/reset-password', validate(validators.resetPasswordSchema), authController.resetPassword);
 
 /**
  * @swagger

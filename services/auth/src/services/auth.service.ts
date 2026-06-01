@@ -1,30 +1,19 @@
 import { db } from '../db/connection';
 import { eq, or, ilike, and, count } from 'drizzle-orm';
-import { users, companies, refreshTokens } from '../db/schema';
+import { users, companies } from '../db/schema';
+import { saveRefreshToken as saveRefreshTokenRedis, findRefreshToken as findRefreshTokenRedis, revokeRefreshToken as revokeRefreshTokenRedis } from '@fms/shared';
 import bcrypt from 'bcryptjs';
 
 export const saveRefreshToken = async (userId: number, token: string, expiresInDays: number = 7) => {
-  const expiresAt = new Date();
-  expiresAt.setDate(expiresAt.getDate() + expiresInDays);
-
-  const [savedToken] = await db.insert(refreshTokens).values({
-    userId,
-    token,
-    expiresAt,
-  }).returning();
-  
-  return savedToken;
+  return await saveRefreshTokenRedis(userId, token, expiresInDays);
 };
 
 export const findRefreshToken = async (token: string) => {
-  const [refreshToken] = await db.select().from(refreshTokens).where(eq(refreshTokens.token, token));
-  return refreshToken;
+  return await findRefreshTokenRedis(token);
 };
 
 export const revokeRefreshToken = async (token: string) => {
-  await db.update(refreshTokens)
-    .set({ isRevoked: true })
-    .where(eq(refreshTokens.token, token));
+  await revokeRefreshTokenRedis(token);
 };
 
 export const createUser = async (userData: any, companyData?: any) => {

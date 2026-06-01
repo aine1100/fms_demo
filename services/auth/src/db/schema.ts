@@ -27,11 +27,3 @@ export const users = pgTable('users', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
 
-export const refreshTokens = pgTable('refresh_tokens', {
-  id: serial('id').primaryKey(),
-  userId: integer('user_id').references(() => users.id).notNull(),
-  token: varchar('token', { length: 500 }).unique().notNull(),
-  expiresAt: timestamp('expires_at').notNull(),
-  isRevoked: boolean('is_revoked').default(false),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-});
