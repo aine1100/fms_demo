@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import * as authService from '../services/auth.service';
-import { generateToken, AuthRequest, getPaginationParams, buildPaginatedResponse, UserRole } from '@fms/shared';
+import { generateToken, AuthRequest, getPaginationParams, buildPaginatedResponse, UserRole, sendEmail, redisClient } from '@fms/shared';
 
 export const register = async (req: Request, res: Response) => {
   try {
@@ -24,8 +24,76 @@ export const register = async (req: Request, res: Response) => {
     } : undefined;
 
     const user = await authService.createUser({ firstName, lastName, email, password, role }, companyData);
-    
-    res.status(201).json({ success: true, message: 'User registered successfully', data: user });
+
+    // mark user inactive until verification
+    await authService.updateUser(user.id, { isActive: false });
+
+    // generate OTP and store in Redis (10 minutes)
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    await redisClient.set(`otp:${email}`, otp, 'EX', 600);
+
+    // send OTP via email
+    const subject = 'Verify your account';
+    const html = `<p>Your verification code is <strong>${otp}</strong>. It expires in 10 minutes.</p>`;
+    await sendEmail({ to: email, subject, html });
+
+    res.status(201).json({ success: true, message: 'User registered successfully. Check email for verification OTP', data: { id: user.id, email: user.email } });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const verifyAccount = async (req: Request, res: Response) => {
+  try {
+    const { email, otp } = req.body;
+    const stored = await redisClient.get(`otp:${email}`);
+    if (!stored || stored !== otp) return res.status(400).json({ success: false, message: 'Invalid or expired OTP' });
+
+    const user = await authService.findUserByEmail(email);
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+
+    await authService.updateUser(user.id, { isActive: true });
+    await redisClient.del(`otp:${email}`);
+
+    res.json({ success: true, message: 'Account verified successfully' });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const requestPasswordReset = async (req: Request, res: Response) => {
+  try {
+    const { email } = req.body;
+    const user = await authService.findUserByEmail(email);
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    await redisClient.set(`reset:${email}`, otp, 'EX', 900); // 15 minutes
+
+    const subject = 'Password reset request';
+    const html = `<p>Your password reset code is <strong>${otp}</strong>. It expires in 15 minutes.</p>`;
+    await sendEmail({ to: email, subject, html });
+
+    res.json({ success: true, message: 'Password reset OTP sent to email' });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const resetPassword = async (req: Request, res: Response) => {
+  try {
+    const { email, otp, newPassword } = req.body;
+    const stored = await redisClient.get(`reset:${email}`);
+    if (!stored || stored !== otp) return res.status(400).json({ success: false, message: 'Invalid or expired OTP' });
+
+    const user = await authService.findUserByEmail(email);
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
+
+    const hashed = await bcrypt.hash(newPassword, 12);
+    await authService.updateUser(user.id, { password: hashed });
+    await redisClient.del(`reset:${email}`);
+
+    res.json({ success: true, message: 'Password reset successful' });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
   }

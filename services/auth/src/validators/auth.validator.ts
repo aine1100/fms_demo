@@ -42,3 +42,18 @@ export const createInspectorSchema = z.object({
 export const refreshTokenSchema = z.object({
   refreshToken: z.string(),
 });
+
+export const verifyAccountSchema = z.object({
+  email: z.string().email(),
+  otp: z.string().min(4),
+});
+
+export const requestResetSchema = z.object({
+  email: z.string().email(),
+});
+
+export const resetPasswordSchema = z.object({
+  email: z.string().email(),
+  otp: z.string().min(4),
+  newPassword: z.string().min(6),
+});
