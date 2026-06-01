@@ -94,6 +94,10 @@ export interface PaginationQuery {
 
 export interface PaginatedResponse<T> {
   data: T[];
+  items?: T[];
+  total?: number;
+  page?: number;
+  totalPages?: number;
   pagination: {
     page: number;
     limit: number;

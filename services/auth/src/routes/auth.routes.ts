@@ -188,6 +188,17 @@ router.get('/users', authenticate, authorize(UserRole.SUPER_ADMIN, UserRole.COMP
  *     tags: [Users]
  *     security:
  *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               firstName: { type: string }
+ *               lastName: { type: string }
+ *               email: { type: string }
+ *               password: { type: string }
  *     responses:
  *       201:
  *         description: Inspector created

@@ -6,7 +6,7 @@ const options: swaggerJsdoc.Options = {
     info: {
       title: 'Extinguisher Service API',
       version: '1.0.0',
-      description: 'Extinguisher Catalog and Tracking API',
+      description: 'Extinguisher catalog, inventory tracking, and status management API',
     },
     servers: [{ url: 'http://localhost:4003' }],
     components: {
