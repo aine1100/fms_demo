@@ -1,4 +1,8 @@
-import { customerClient } from './client';
+import { customerClient, extinguisherClient, inspectionClient, notificationClient, paymentClient, type ApiResponse } from './client';
+import type { ExtinguisherRecord } from './extinguisher';
+import type { InspectionRecord } from './inspection';
+import type { InvoiceRecord } from './payment';
+import type { NotificationRecord } from './notification';
 
 export interface CustomerPayload {
   userId?: number;
@@ -58,4 +62,73 @@ export const customerApi = {
 
   updateMyProfile: (data: Partial<CustomerPayload>) =>
     customerClient.put<CustomerRecord>('/customers/me', data),
+
+  getMyExtinguishers: async () => {
+    const profile = await customerApi.getMyProfile();
+    if (!profile.success || !profile.data) {
+      return {
+        success: false,
+        message: profile.message || 'Customer profile not found',
+      } as ApiResponse<{ items: ExtinguisherRecord[]; total: number; page: number; totalPages: number }>;
+    }
+
+    return extinguisherClient.get<{ items: ExtinguisherRecord[]; total: number; page: number; totalPages: number }>(
+      `/extinguishers/my?customerId=${profile.data.id}`
+    );
+  },
+
+  getAlerts: async (page = 1, limit = 5) =>
+    notificationClient.get<{ items: NotificationRecord[]; total: number; page: number; totalPages: number }>(
+      `/notifications?page=${page}&limit=${limit}`
+    ),
+
+  getInspectionHistory: async (page = 1, limit = 5) => {
+    const extRes = await customerApi.getMyExtinguishers();
+    if (!extRes.success || !extRes.data) {
+      return {
+        success: false,
+        message: extRes.message || 'No extinguishers found',
+      } as ApiResponse<{ items: InspectionRecord[]; total: number; page: number; totalPages: number }>;
+    }
+
+    const firstExtinguishers = (extRes.data.items ?? []).slice(0, 5);
+    const histories = await Promise.all(
+      firstExtinguishers.map((ext) =>
+        inspectionClient.get<{ items: InspectionRecord[]; total: number; page: number; totalPages: number }>(
+          `/inspections/extinguisher/${ext.id}?page=1&limit=${limit}`
+        )
+      )
+    );
+
+    const items = histories.flatMap(result => (result.success && result.data ? result.data.items ?? [] : []));
+    const sortedItems = items
+      .slice()
+      .sort((a, b) => new Date(b.scheduledDate).getTime() - new Date(a.scheduledDate).getTime())
+      .slice(0, limit);
+
+    return {
+      success: true,
+      message: 'Inspection history loaded',
+      data: {
+        items: sortedItems,
+        total: sortedItems.length,
+        page,
+        totalPages: 1,
+      },
+    } as ApiResponse<{ items: InspectionRecord[]; total: number; page: number; totalPages: number }>;
+  },
+
+  getInvoices: async (page = 1, limit = 5) => {
+    const profile = await customerApi.getMyProfile();
+    if (!profile.success || !profile.data) {
+      return {
+        success: false,
+        message: profile.message || 'Customer profile not found',
+      } as ApiResponse<{ items: InvoiceRecord[]; total: number; page: number; totalPages: number }>;
+    }
+
+    return paymentClient.get<{ items: InvoiceRecord[]; total: number; page: number; totalPages: number }>(
+      `/payments/invoices?customerId=${profile.data.id}&page=${page}&limit=${limit}`
+    );
+  },
 };

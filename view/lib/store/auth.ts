@@ -1,10 +1,19 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { authApi, ProfileResponse, AuthResponse } from '@/lib/api/auth';
-import { authClient } from '@/lib/api/client';
+import { authClient, customerClient, extinguisherClient, inspectionClient, paymentClient, notificationClient } from '@/lib/api/client';
+
+function setTokenOnAllClients(token: string | null) {
+  authClient.setToken(token);
+  customerClient.setToken(token);
+  extinguisherClient.setToken(token);
+  inspectionClient.setToken(token);
+  paymentClient.setToken(token);
+  notificationClient.setToken(token);
+}
 
 interface AuthState {
-  user: ProfileResponse | null;
+  user: ProfileResponse | AuthResponse['user'] | null;
   token: string | null;
   refreshToken: string | null;
   isLoading: boolean;
@@ -47,7 +56,7 @@ export const useAuthStore = create<AuthState>()(
           if (response.success && response.data) {
             const { user, token, refreshToken } = response.data;
             set({ user, token, refreshToken });
-            authClient.setToken(token);
+            setTokenOnAllClients(token);
           } else {
             throw new Error(response.message || 'Login failed');
           }
@@ -91,12 +100,12 @@ export const useAuthStore = create<AuthState>()(
 
       setToken: (token: string, refreshToken: string) => {
         set({ token, refreshToken });
-        authClient.setToken(token);
+        setTokenOnAllClients(token);
       },
 
       logout: () => {
         set({ user: null, token: null, refreshToken: null });
-        authClient.setToken(null);
+        setTokenOnAllClients(null);
         if (typeof window !== 'undefined') {
           localStorage.removeItem('fms-auth');
           localStorage.removeItem('auth-store');
@@ -114,7 +123,7 @@ export const useAuthStore = create<AuthState>()(
           const response = await authApi.refreshToken({ refreshToken: state.refreshToken });
           if (response.success && response.data) {
             set({ token: response.data.token });
-            authClient.setToken(response.data.token);
+            setTokenOnAllClients(response.data.token);
           }
         } catch (error) {
           state.logout();
@@ -128,6 +137,8 @@ export const useAuthStore = create<AuthState>()(
           const response = await authApi.getProfile();
           if (response.success && response.data) {
             set({ user: response.data });
+            const { token } = get();
+            if (token) setTokenOnAllClients(token);
           }
         } catch (error: any) {
           set({ error: error.message });
@@ -167,7 +178,7 @@ export const useAuthStore = create<AuthState>()(
             state.setHydrated();
             // Restore token to client on hydration
             if (state.token) {
-              authClient.setToken(state.token);
+              setTokenOnAllClients(state.token);
             }
           }
         };

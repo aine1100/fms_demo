@@ -199,6 +199,7 @@ router.get('/users', authenticate, authorize(UserRole.SUPER_ADMIN, UserRole.COMP
  *               lastName: { type: string }
  *               email: { type: string }
  *               password: { type: string }
+ *               companyId: { type: integer }
  *     responses:
  *       201:
  *         description: Inspector created

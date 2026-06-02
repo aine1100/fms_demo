@@ -36,7 +36,7 @@ export default function CompanyDashboardIntegrated() {
         // Fetch inventory
         const invRes = await extinguisherApi.getExtinguishers(1, 100)
         if (invRes.success) {
-          const items = invRes.data?.items ?? invRes.data?.data ?? []
+          const items = invRes.data?.items ?? []
           setInventory(items)
           
           const active = items.filter((i: any) => i.status === 'active').length
@@ -44,7 +44,7 @@ export default function CompanyDashboardIntegrated() {
 
           setStats(prev => ({
             ...prev,
-            totalInventory: invRes.data?.total ?? invRes.data?.pagination?.total ?? items.length,
+            totalInventory: invRes.data?.total ?? items.length,
             activeCount: active,
             expiredCount: expired,
           }))
@@ -57,7 +57,7 @@ export default function CompanyDashboardIntegrated() {
         }
 
         // Fetch invoices and calculate revenue
-        const invoiceRes = await paymentApi.getInvoices(100, 0, 'paid')
+        const invoiceRes = await paymentApi.getInvoices(1, 100, { status: 'paid' })
         if (invoiceRes.success) {
           setInvoices(invoiceRes.data?.items || [])
           const totalRevenue = (invoiceRes.data?.items || []).reduce((sum: number, inv: any) => sum + parseFloat(inv.totalAmount || 0), 0)
@@ -175,8 +175,8 @@ export default function CompanyDashboardIntegrated() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Recent Revenue</CardTitle>
-            <Link href="/company/invoices">
-              <Button variant="outline" size="sm">All Invoices</Button>
+            <Link href="/company/payments">
+              <Button variant="outline" size="sm">All Payments</Button>
             </Link>
           </CardHeader>
           <CardContent>

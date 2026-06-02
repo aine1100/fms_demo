@@ -1,16 +1,23 @@
 import { z } from 'zod';
 import { InspectionResult } from '@fms/shared';
 
+const dateString = z
+  .string()
+  .min(1)
+  .refine((value) => !Number.isNaN(Date.parse(value)), {
+    message: 'Must be a valid date',
+  });
+
 export const scheduleInspectionSchema = z.object({
   extinguisherId: z.number(),
-  scheduledDate: z.string().datetime(),
+  scheduledDate: dateString,
   inspectorId: z.number().optional(),
   customerId: z.number().optional(),
   location: z.string().optional(),
 });
 
 export const updateInspectionSchema = z.object({
-  scheduledDate: z.string().datetime().optional(),
+  scheduledDate: dateString.optional(),
   inspectorId: z.number().optional(),
   location: z.string().optional(),
 });

@@ -92,6 +92,30 @@ class ApiClient {
         throw new Error(data.message || `HTTP ${response.status}`);
       }
 
+      const looksPaginated =
+        data &&
+        typeof data === 'object' &&
+        (Array.isArray((data as any).data) || Array.isArray((data as any).items)) &&
+        (Object.prototype.hasOwnProperty.call(data, 'pagination') ||
+          Object.prototype.hasOwnProperty.call(data, 'total') ||
+          Object.prototype.hasOwnProperty.call(data, 'page') ||
+          Object.prototype.hasOwnProperty.call(data, 'totalPages'));
+
+      if (looksPaginated) {
+        const items = (data as any).items ?? (data as any).data ?? [];
+        return {
+          success: (data as any).success ?? true,
+          message: (data as any).message ?? '',
+          data: {
+            items,
+            total: (data as any).total ?? (data as any).pagination?.total ?? items.length,
+            page: (data as any).page ?? (data as any).pagination?.page ?? 1,
+            totalPages: (data as any).totalPages ?? (data as any).pagination?.totalPages ?? 1,
+            pagination: (data as any).pagination,
+          } as T,
+        };
+      }
+
       return data as ApiResponse<T>;
     } catch (error: any) {
       if (error.name === 'AbortError') {

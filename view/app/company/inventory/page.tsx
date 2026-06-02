@@ -32,6 +32,8 @@ import {
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { extinguisherApi, type ExtinguisherRecord, type RegisterExtinguisherPayload } from '@/lib/api/extinguisher'
+import { downloadCsv } from '@/lib/export'
+import toast from 'react-hot-toast'
 import {
   Plus,
   MoreHorizontal,
@@ -91,7 +93,7 @@ export default function InventoryPage() {
         setTotal(extRes.data?.total ?? 0)
       }
     } catch (err: any) {
-      setError(err.message || 'Failed to load inventory')
+      toast.error(err.message || 'Failed to load inventory')
     } finally {
       setLoading(false)
     }
@@ -121,7 +123,14 @@ export default function InventoryPage() {
   }
 
   const handleSave = async () => {
-    if (!form.serialNumber || !form.type || !form.capacity || !form.location || !form.expiryDate) return
+    if (!form.serialNumber || !form.type || !form.capacity || !form.location || !form.manufactureDate || !form.expiryDate) return
+    const manufactureDate = new Date(`${form.manufactureDate}T00:00:00`)
+    const expiryDate = new Date(`${form.expiryDate}T00:00:00`)
+    if (expiryDate < manufactureDate) {
+      toast.error('Expiry date cannot be before manufacture date')
+      return
+    }
+
     setSaving(true)
     setError(null)
     try {
@@ -143,13 +152,18 @@ export default function InventoryPage() {
         if (res.success && res.data) {
           setExtinguishers(prev => [res.data!, ...prev])
           setTotal(prev => prev + 1)
+          if (expiryDate < new Date(new Date().toISOString().split('T')[0] + 'T00:00:00')) {
+            toast.success('Extinguisher registered as expired')
+          } else {
+            toast.success('Extinguisher registered successfully')
+          }
           setIsAddDialogOpen(false)
         } else {
-          setError(res.message || 'Failed to register extinguisher')
+          toast.error(res.message || 'Failed to register extinguisher')
         }
       }
     } catch (err: any) {
-      setError(err.message || 'Operation failed')
+      toast.error(err.message || 'Operation failed')
     } finally {
       setSaving(false)
     }
@@ -162,12 +176,13 @@ export default function InventoryPage() {
       const res = await extinguisherApi.updateExtinguisherStatus(selectedItem.id, newStatus)
       if (res.success && res.data) {
         setExtinguishers(prev => prev.map(e => e.id === selectedItem.id ? { ...e, status: newStatus } : e))
+        toast.success('Status updated successfully')
         setIsStatusDialogOpen(false)
       } else {
-        setError(res.message || 'Status update failed')
+        toast.error(res.message || 'Status update failed')
       }
     } catch (err: any) {
-      setError(err.message || 'Status update failed')
+      toast.error(err.message || 'Status update failed')
     } finally {
       setSaving(false)
     }
@@ -239,6 +254,18 @@ export default function InventoryPage() {
   const activeCount = extinguishers.filter(e => e.status === 'active').length
   const maintenanceCount = extinguishers.filter(e => e.status === 'maintenance').length
   const expiredCount = extinguishers.filter(e => e.status === 'expired').length
+  const handleExport = () => {
+    downloadCsv('company-inventory', extinguishers, [
+      { header: 'Serial Number', value: item => item.serialNumber },
+      { header: 'Type', value: item => item.type },
+      { header: 'Capacity', value: item => item.capacity },
+      { header: 'Location', value: item => item.location },
+      { header: 'Customer', value: item => item.customer?.businessName ?? '' },
+      { header: 'Status', value: item => item.status },
+      { header: 'Manufacture Date', value: item => item.manufactureDate ? new Date(item.manufactureDate).toLocaleDateString() : '' },
+      { header: 'Expiry Date', value: item => new Date(item.expiryDate).toLocaleDateString() },
+    ])
+  }
 
   return (
     <DashboardLayout requiredRole="company">
@@ -293,7 +320,7 @@ export default function InventoryPage() {
                 searchKeys={['serialNumber', 'type', 'location']}
                 actions={actions}
                 exportable
-                onExport={() => {}}
+                onExport={handleExport}
               />
             )}
           </CardContent>
@@ -347,7 +374,7 @@ export default function InventoryPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Manufacture Date</Label>
+                <Label>Manufacture Date *</Label>
                 <Input
                   type="date"
                   max={today}
@@ -377,7 +404,7 @@ export default function InventoryPage() {
             <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>Cancel</Button>
             <Button
               onClick={handleSave}
-              disabled={saving || !form.serialNumber || !form.type || !form.capacity || !form.location || !form.expiryDate}
+              disabled={saving || !form.serialNumber || !form.type || !form.capacity || !form.location || !form.manufactureDate || !form.expiryDate}
             >
               {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {selectedItem ? 'Save Changes' : 'Register'}

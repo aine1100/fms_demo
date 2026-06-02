@@ -22,6 +22,7 @@ export const getCatalog = async (limit: number, offset: number, filters: any) =>
     db.select().from(extinguisherCatalog).where(whereClause).limit(limit).offset(offset),
     db.select({ total: count() }).from(extinguisherCatalog).where(whereClause)
   ]);
+  console.log("searching extinguishers")
   
   return { items, total };
 };
@@ -33,12 +34,27 @@ export const getCatalogItemById = async (id: number) => {
 
 // --- Extinguisher Services ---
 export const registerExtinguisher = async (data: any) => {
+  // Normalize dates
+  const manufactureDate = data.manufactureDate ? new Date(data.manufactureDate) : null
+  const expiryDate = data.expiryDate ? new Date(data.expiryDate) : null
+
+  // Determine status based on expiry (if expiry is in the past, mark expired)
+  let status: any = 'active'
+  if (expiryDate) {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const e = new Date(expiryDate)
+    e.setHours(0, 0, 0, 0)
+    if (e < today) status = 'expired'
+  }
+
   const [extinguisher] = await db.insert(extinguishers).values({
     ...data,
-    manufactureDate: new Date(data.manufactureDate),
-    expiryDate: new Date(data.expiryDate),
+    manufactureDate: manufactureDate,
+    expiryDate: expiryDate,
     lastInspectionDate: data.lastInspectionDate ? new Date(data.lastInspectionDate) : null,
     nextInspectionDate: data.nextInspectionDate ? new Date(data.nextInspectionDate) : null,
+    status,
   }).returning();
   return extinguisher;
 };
@@ -57,8 +73,24 @@ export const getExtinguishers = async (limit: number, offset: number, filters: a
     db.select().from(extinguishers).where(whereClause).limit(limit).offset(offset),
     db.select({ total: count() }).from(extinguishers).where(whereClause)
   ]);
-  
-  return { items, total };
+  console.log("searching extinguishers")
+
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
+  const normalizedItems = items.map((item: any) => {
+    if (item.status === 'active') {
+      const expiry = item.expiryDate instanceof Date ? item.expiryDate : new Date(item.expiryDate)
+      const expiryDate = new Date(expiry)
+      expiryDate.setHours(0, 0, 0, 0)
+      if (expiryDate < today) {
+        return { ...item, status: 'expired' }
+      }
+    }
+    return item
+  })
+
+  return { items: normalizedItems, total };
 };
 
 export const getExtinguisherById = async (id: number) => {

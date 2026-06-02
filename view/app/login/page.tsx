@@ -11,6 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Checkbox } from '@/components/ui/checkbox'
 import { Flame, Eye, EyeOff, Loader2 } from 'lucide-react'
 import type { UserRole } from '@/lib/types'
+import toast from 'react-hot-toast'
 
 // Maps backend role values to their portal routes
 const ROLE_ROUTES: Record<UserRole, string> = {
@@ -39,14 +40,21 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     clearError()
-
-    const success = await login(email, password)
-    if (success) {
-      // Read user from store after login
-      const user = useAuthStore.getState().user
-      if (user) {
-        router.push(ROLE_ROUTES[user.role] ?? '/login')
+    const toastId = toast.loading('Signing in...')
+    try {
+      const success = await login(email, password)
+      if (success) {
+        toast.success('Welcome back!', { id: toastId })
+        const user = useAuthStore.getState().user
+        if (user) {
+          setTimeout(() => router.push(ROLE_ROUTES[user.role] ?? '/login'), 1500)
+        }
+      } else {
+        const msg = useAuthStore.getState().error || 'Login failed'
+        toast.error(msg, { id: toastId })
       }
+    } catch (err: any) {
+      toast.error(err?.message || 'Login failed', { id: toastId })
     }
   }
 

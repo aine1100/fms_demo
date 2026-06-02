@@ -204,9 +204,9 @@ export const getUsers = async (req: AuthRequest, res: Response) => {
   }
 };
 
-export const createInspector = async (req: Request, res: Response) => {
+export const createInspector = async (req: AuthRequest, res: Response) => {
   try {
-    const { firstName, lastName, email, password } = req.body;
+    const { firstName, lastName, email, password, companyId } = req.body;
     
     const existingUser = await authService.findUserByEmail(email);
     if (existingUser) {
@@ -214,7 +214,12 @@ export const createInspector = async (req: Request, res: Response) => {
     }
 
     const inspector = await authService.createUser({
-      firstName, lastName, email, password, role: UserRole.INSPECTOR
+      firstName,
+      lastName,
+      email,
+      password,
+      role: UserRole.INSPECTOR,
+      companyId,
     });
 
     res.status(201).json({ success: true, message: 'Inspector created', data: inspector });
