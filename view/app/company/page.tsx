@@ -276,7 +276,9 @@ export default function CompanyDashboard() {
                             {inspection.extinguisher?.serialNumber ?? `#${inspection.extinguisherId}`}
                           </p>
                           <p className="text-xs text-muted-foreground">
-                            {inspection.customer?.businessName ?? inspection.location ?? '—'}
+                            {inspection.customer?.firstName && inspection.customer?.lastName
+                              ? `${inspection.customer.firstName} ${inspection.customer.lastName}`
+                              : inspection.customer?.businessName ?? inspection.location ?? '—'}
                           </p>
                         </div>
                       </div>

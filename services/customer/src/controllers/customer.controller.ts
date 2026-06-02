@@ -11,7 +11,7 @@ export const createCustomer = async (req: AuthRequest, res: Response) => {
     if (req.user?.role === UserRole.COMPANY) {
       data.companyId = req.user.companyId;
     }
-    
+
     const customer = await customerService.createCustomer(data);
     res.status(201).json({ success: true, message: 'Customer created', data: customer });
   } catch (error: any) {
@@ -23,10 +23,10 @@ export const getCustomers = async (req: AuthRequest, res: Response) => {
   try {
     const { page, limit, offset } = getPaginationParams(req.query);
     const search = req.query.search as string | undefined;
-    
+
     // Companies can only see their own customers. Super admin/inspector sees all.
     const companyId = req.user?.role === UserRole.COMPANY ? req.user.companyId! : undefined;
-    
+
     const { items, total } = await customerService.getCustomers(limit, offset, companyId, search);
     res.json({ success: true, ...buildPaginatedResponse(items, total, page, limit) });
   } catch (error: any) {
@@ -38,15 +38,15 @@ export const getCustomerById = async (req: AuthRequest, res: Response) => {
   try {
     const id = parseInt(req.params.id);
     const customer = await customerService.getCustomerById(id);
-    
+
     if (!customer) {
       return res.status(404).json({ success: false, message: 'Customer not found' });
     }
-    
+
     if (req.user?.role === UserRole.COMPANY && customer.companyId !== req.user.companyId) {
       return res.status(403).json({ success: false, message: 'Access denied' });
     }
-    
+
     res.json({ success: true, data: customer });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
@@ -57,15 +57,15 @@ export const updateCustomer = async (req: AuthRequest, res: Response) => {
   try {
     const id = parseInt(req.params.id);
     const customer = await customerService.getCustomerById(id);
-    
+
     if (!customer) {
       return res.status(404).json({ success: false, message: 'Customer not found' });
     }
-    
+
     if (req.user?.role === UserRole.COMPANY && customer.companyId !== req.user.companyId) {
       return res.status(403).json({ success: false, message: 'Access denied' });
     }
-    
+
     const updatedCustomer = await customerService.updateCustomer(id, req.body);
     res.json({ success: true, message: 'Customer updated', data: updatedCustomer });
   } catch (error: any) {
@@ -77,15 +77,15 @@ export const deleteCustomer = async (req: AuthRequest, res: Response) => {
   try {
     const id = parseInt(req.params.id);
     const customer = await customerService.getCustomerById(id);
-    
+
     if (!customer) {
       return res.status(404).json({ success: false, message: 'Customer not found' });
     }
-    
+
     if (req.user?.role === UserRole.COMPANY && customer.companyId !== req.user.companyId) {
       return res.status(403).json({ success: false, message: 'Access denied' });
     }
-    
+
     await customerService.deleteCustomer(id);
     res.json({ success: true, message: 'Customer deleted' });
   } catch (error: any) {
@@ -96,12 +96,19 @@ export const deleteCustomer = async (req: AuthRequest, res: Response) => {
 export const getMyProfile = async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user!.userId;
-    const customer = await customerService.getCustomerByUserId(userId);
-    
+    let customer = await customerService.getCustomerByUserId(userId);
+
     if (!customer) {
-      return res.status(404).json({ success: false, message: 'Customer profile not found' });
+      // Auto-create a customer profile on first access.
+      // The user registered with role=customer but no customers row exists yet.
+      const emailPrefix = req.user!.email.split('@')[0];
+      customer = await customerService.createCustomer({
+        userId,
+        contactPerson: emailPrefix,
+        businessName: emailPrefix,
+      });
     }
-    
+
     res.json({ success: true, data: customer });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
@@ -111,12 +118,18 @@ export const getMyProfile = async (req: AuthRequest, res: Response) => {
 export const updateMyProfile = async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user!.userId;
-    const customer = await customerService.getCustomerByUserId(userId);
-    
+    let customer = await customerService.getCustomerByUserId(userId);
+
     if (!customer) {
-      return res.status(404).json({ success: false, message: 'Customer profile not found' });
+      // Auto-create profile before updating
+      const emailPrefix = req.user!.email.split('@')[0];
+      customer = await customerService.createCustomer({
+        userId,
+        contactPerson: emailPrefix,
+        businessName: emailPrefix,
+      });
     }
-    
+
     const updatedCustomer = await customerService.updateCustomer(customer.id, req.body);
     res.json({ success: true, message: 'Profile updated', data: updatedCustomer });
   } catch (error: any) {

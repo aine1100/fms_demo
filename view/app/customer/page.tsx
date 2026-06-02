@@ -56,7 +56,8 @@ export default function CustomerDashboardPage() {
     setLoading(true)
     setError(null)
     try {
-      const [profileRes, extRes, catalogRes, alertRes, inspRes, invoiceRes] = await Promise.all([
+      // Use Promise.allSettled instead of Promise.all to handle individual failures
+      const results = await Promise.allSettled([
         customerApi.getMyProfile(),
         customerApi.getMyExtinguishers(),
         extinguisherApi.getCatalog(1, 8),
@@ -65,36 +66,39 @@ export default function CustomerDashboardPage() {
         customerApi.getInvoices(1, 5),
       ])
 
-      if (profileRes.success && profileRes.data) {
-        setCustomerName(profileRes.data.businessName || profileRes.data.contactPerson || 'Customer')
+      const [profileRes, extRes, catalogRes, alertRes, inspRes, invoiceRes] = results
+
+      // Handle profile separately - it's okay if it fails
+      if (profileRes.status === 'fulfilled' && profileRes.value.success && profileRes.value.data) {
+        setCustomerName(profileRes.value.data.businessName || profileRes.value.data.contactPerson || 'Customer')
       }
 
-      if (extRes.success && extRes.data) {
-        setExtinguishers(extRes.data.items ?? [])
+      if (extRes.status === 'fulfilled' && extRes.value.success && extRes.value.data) {
+        setExtinguishers(extRes.value.data.items ?? [])
       } else {
         setExtinguishers([])
       }
 
-      if (catalogRes.success && catalogRes.data) {
-        setCatalog((catalogRes.data.items ?? []) as CatalogItem[])
+      if (catalogRes.status === 'fulfilled' && catalogRes.value.success && catalogRes.value.data) {
+        setCatalog((catalogRes.value.data.items ?? []) as CatalogItem[])
       } else {
         setCatalog([])
       }
 
-      if (alertRes.success && alertRes.data) {
-        setAlerts(alertRes.data.items ?? [])
+      if (alertRes.status === 'fulfilled' && alertRes.value.success && alertRes.value.data) {
+        setAlerts(alertRes.value.data.items ?? [])
       } else {
         setAlerts([])
       }
 
-      if (inspRes.success && inspRes.data) {
-        setInspections(inspRes.data.items ?? [])
+      if (inspRes.status === 'fulfilled' && inspRes.value.success && inspRes.value.data) {
+        setInspections(inspRes.value.data.items ?? [])
       } else {
         setInspections([])
       }
 
-      if (invoiceRes.success && invoiceRes.data) {
-        setInvoices(invoiceRes.data.items ?? [])
+      if (invoiceRes.status === 'fulfilled' && invoiceRes.value.success && invoiceRes.value.data) {
+        setInvoices(invoiceRes.value.data.items ?? [])
       } else {
         setInvoices([])
       }
@@ -141,10 +145,10 @@ export default function CustomerDashboardPage() {
               <Link href="/customer/equipment"><Package className="mr-2 h-4 w-4" /> My Equipment</Link>
             </Button>
             <Button asChild variant="outline">
-              <Link href="/customer/service-requests"><ShoppingCart className="mr-2 h-4 w-4" /> Request Service</Link>
+              <Link href="/customer/buy-equipment"><ShoppingCart className="mr-2 h-4 w-4" /> Buy Equipment</Link>
             </Button>
             <Button asChild>
-              <Link href="/customer/service-requests"><Calendar className="mr-2 h-4 w-4" /> Buy / Request</Link>
+              <Link href="/customer/invoices"><Receipt className="mr-2 h-4 w-4" /> Invoices</Link>
             </Button>
           </div>
         </div>
@@ -258,7 +262,9 @@ export default function CustomerDashboardPage() {
                       <div>
                         <p className="font-medium">Invoice #{inv.invoiceNumber}</p>
                         <p className="text-sm text-muted-foreground">
-                          ${(inv.totalAmount ?? inv.amount).toFixed(2)} • {inv.customer?.businessName ?? 'Your account'}
+                          ${(inv.totalAmount ?? inv.amount).toFixed(2)} • {inv.customer?.firstName && inv.customer?.lastName
+                            ? `${inv.customer.firstName} ${inv.customer.lastName}`
+                            : inv.customer?.businessName ?? 'Your account'}
                         </p>
                         <p className="text-xs text-muted-foreground">
                           Due {new Date(inv.dueDate).toLocaleDateString()}
@@ -365,13 +371,13 @@ export default function CustomerDashboardPage() {
           <CardContent>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               <Button variant="outline" className="h-auto flex-col gap-2 py-4" asChild>
-                <Link href="/customer/service-requests"><ShoppingCart className="h-5 w-5" /><span>Buy / Request</span></Link>
+                <Link href="/customer/buy-equipment"><ShoppingCart className="h-5 w-5" /><span>Buy Equipment</span></Link>
               </Button>
               <Button variant="outline" className="h-auto flex-col gap-2 py-4" asChild>
                 <Link href="/customer/equipment"><Package className="h-5 w-5" /><span>My Equipment</span></Link>
               </Button>
               <Button variant="outline" className="h-auto flex-col gap-2 py-4" asChild>
-                <Link href="/customer/inspections"><ClipboardList className="h-5 w-5" /><span>Inspections</span></Link>
+                <Link href="/customer/service-requests"><ClipboardList className="h-5 w-5" /><span>Service Requests</span></Link>
               </Button>
               <Button variant="outline" className="h-auto flex-col gap-2 py-4" asChild>
                 <Link href="/customer/invoices"><Receipt className="h-5 w-5" /><span>Payments</span></Link>

@@ -1,7 +1,3 @@
-/**
- * Centralized Database Connection
- * Single database instance used across all microservices
- */
 
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';

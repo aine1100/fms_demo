@@ -14,7 +14,7 @@ export interface InvoiceRecord {
   dueDate: string;
   paidDate?: string;
   createdAt: string;
-  customer?: { id: number; businessName: string; contactPerson: string };
+  customer?: { id: number; businessName: string; contactPerson: string; firstName?: string; lastName?: string };
 }
 
 export interface PaymentRecord {
