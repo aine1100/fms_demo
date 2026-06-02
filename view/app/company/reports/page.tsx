@@ -7,13 +7,14 @@ import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, Legend,
+  ResponsiveContainer, PieChart, Pie, Cell, Legend,
 } from 'recharts'
 import { Download, FileText, Loader2 } from 'lucide-react'
 import { inspectionApi } from '@/lib/api/inspection'
 import { extinguisherApi } from '@/lib/api/extinguisher'
 import { customerApi } from '@/lib/api/customer'
 import { paymentApi } from '@/lib/api/payment'
+import { downloadCsv } from '@/lib/export'
 
 interface SummaryStats {
   totalInspections: number
@@ -125,6 +126,47 @@ export default function CompanyReportsPage() {
     { label: 'Equipment Registered', value: stats.totalEquipment.toString() },
     { label: 'Active Customers', value: stats.totalCustomers.toString() },
   ]
+
+  const generateReport = (title: string) => {
+    const rowsByTitle: Record<string, { metric: string; value: string }[]> = {
+      'Inspection Summary': [
+        { metric: 'Total Inspections', value: stats.totalInspections.toString() },
+        { metric: 'Completed Inspections', value: stats.completedInspections.toString() },
+        { metric: 'Scheduled Inspections', value: String(stats.totalInspections - stats.completedInspections) },
+      ],
+      'Equipment Inventory': [
+        { metric: 'Total Equipment', value: stats.totalEquipment.toString() },
+        { metric: 'Active Equipment', value: stats.activeEquipment.toString() },
+        { metric: 'Maintenance Equipment', value: stats.maintenanceEquipment.toString() },
+        { metric: 'Expired Equipment', value: stats.expiredEquipment.toString() },
+      ],
+      'Compliance Report': [
+        { metric: 'Compliance Rate', value: `${complianceRate}%` },
+        { metric: 'Active Equipment', value: stats.activeEquipment.toString() },
+        { metric: 'Total Equipment', value: stats.totalEquipment.toString() },
+      ],
+      'Customer Activity': [
+        { metric: 'Total Customers', value: stats.totalCustomers.toString() },
+        { metric: 'Active Customers', value: stats.totalCustomers.toString() },
+      ],
+      'Financial Summary': [
+        { metric: 'Total Revenue', value: stats.totalRevenue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
+      ],
+      'Inspector Performance': [
+        { metric: 'Total Inspections', value: stats.totalInspections.toString() },
+        { metric: 'Completed Inspections', value: stats.completedInspections.toString() },
+      ],
+    }
+
+    downloadCsv(
+      `${title.toLowerCase().replace(/\s+/g, '-')}`,
+      rowsByTitle[title] ?? [{ metric: 'Value', value: 'No data available' }],
+      [
+        { header: 'Metric', value: row => row.metric },
+        { header: 'Value', value: row => row.value },
+      ]
+    )
+  }
 
   return (
     <DashboardLayout requiredRole="company">
@@ -272,7 +314,7 @@ export default function CompanyReportsPage() {
                   <div className="flex-1">
                     <h3 className="font-medium">{report.title}</h3>
                     <p className="text-sm text-muted-foreground">{report.description}</p>
-                    <Button variant="link" className="h-auto p-0 mt-1 text-primary text-sm">
+                    <Button variant="link" className="h-auto p-0 mt-1 text-primary text-sm" onClick={() => generateReport(report.title)}>
                       Generate Report
                     </Button>
                   </div>

@@ -4,12 +4,12 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/lib/store'
-// forgotPassword is wired to the real API in lib/store.ts
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Flame, ArrowLeft, Loader2 } from 'lucide-react'
+import toast from 'react-hot-toast'
 
 export default function ForgotPasswordPage() {
   const router = useRouter()
@@ -21,10 +21,16 @@ export default function ForgotPasswordPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     clearError()
-    
+
+    const toastId = toast.loading('Sending reset code...')
     const success = await forgotPassword(email)
+
     if (success) {
+      toast.success('Reset code sent! Check your email.', { id: toastId })
       setSubmitted(true)
+    } else {
+      const msg = useAuthStore.getState().error || 'Email not found'
+      toast.error(msg, { id: toastId })
     }
   }
 
@@ -58,14 +64,24 @@ export default function ForgotPasswordPage() {
               <div className="space-y-4">
                 <Button 
                   className="w-full" 
-                  onClick={() => router.push('/reset-password')}
+                  onClick={() => setTimeout(() => router.push('/reset-password'), 1500)}
                 >
                   Enter Reset Code
                 </Button>
                 <Button 
                   variant="ghost" 
                   className="w-full"
-                  onClick={() => setSubmitted(false)}
+                  onClick={async () => {
+                    setSubmitted(false)
+                    const toastId = toast.loading('Resending...')
+                    const ok = await forgotPassword(email)
+                    if (ok) {
+                      toast.success('Code resent! Check your email.', { id: toastId })
+                      setSubmitted(true)
+                    } else {
+                      toast.error(useAuthStore.getState().error || 'Failed to resend', { id: toastId })
+                    }
+                  }}
                 >
                   {"Didn't receive the email? Click to resend"}
                 </Button>

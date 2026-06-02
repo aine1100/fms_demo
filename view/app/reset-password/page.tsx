@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Flame, Eye, EyeOff, Loader2, ArrowLeft, CheckCircle } from 'lucide-react'
+import toast from 'react-hot-toast'
 
 export default function ResetPasswordPage() {
   const router = useRouter()
@@ -62,19 +63,29 @@ export default function ResetPasswordPage() {
     setValidationError('')
     
     if (password !== confirmPassword) {
-      setValidationError('Passwords do not match')
+      const msg = 'Passwords do not match'
+      setValidationError(msg)
+      toast.error(msg)
       return
     }
     
     if (password.length < 6) {
-      setValidationError('Password must be at least 6 characters')
+      const msg = 'Password must be at least 6 characters'
+      setValidationError(msg)
+      toast.error(msg)
       return
     }
     
     const otpString = otp.join('')
+    const toastId = toast.loading('Resetting password...')
     const result = await resetPassword(otpString, password)
+
     if (result) {
+      toast.success('Password reset successfully!', { id: toastId })
       setSuccess(true)
+    } else {
+      const msg = useAuthStore.getState().error || 'Reset failed. Check your code and try again.'
+      toast.error(msg, { id: toastId })
     }
   }
 

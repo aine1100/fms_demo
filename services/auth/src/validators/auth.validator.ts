@@ -37,6 +37,7 @@ export const createInspectorSchema = z.object({
   lastName: z.string().min(2),
   email: z.string().email(),
   password: z.string().min(6),
+  companyId: z.number().int().positive().optional(),
 });
 
 export const refreshTokenSchema = z.object({

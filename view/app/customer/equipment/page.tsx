@@ -1,88 +1,101 @@
-"use client"
+'use client'
 
-import { useState } from "react"
-import { DashboardLayout } from "@/components/layout/dashboard-layout"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { StatusBadge } from "@/components/shared/status-badge"
-import { FireExtinguisher, Search, Filter, MapPin, Calendar, Eye, QrCode, Download } from "lucide-react"
-
-const equipment = [
-  { id: "EXT-001", type: "ABC Dry Chemical", location: "Building A - Floor 1", lastInspection: "2024-01-10", nextInspection: "2024-07-10", expiryDate: "2025-01-10", status: "active" as const },
-  { id: "EXT-002", type: "CO2", location: "Building A - Floor 2", lastInspection: "2024-01-08", nextInspection: "2024-07-08", expiryDate: "2024-02-15", status: "expiring" as const },
-  { id: "EXT-003", type: "Water", location: "Building A - Floor 3", lastInspection: "2024-01-05", nextInspection: "2024-07-05", expiryDate: "2025-03-20", status: "active" as const },
-  { id: "EXT-004", type: "ABC Dry Chemical", location: "Building B - Lobby", lastInspection: "2023-12-20", nextInspection: "2024-06-20", expiryDate: "2024-01-20", status: "expired" as const },
-  { id: "EXT-005", type: "Foam", location: "Building B - Floor 1", lastInspection: "2024-01-12", nextInspection: "2024-07-12", expiryDate: "2025-06-15", status: "active" as const },
-  { id: "EXT-006", type: "ABC Dry Chemical", location: "Building C - Basement", lastInspection: "2024-01-11", nextInspection: "2024-07-11", expiryDate: "2024-02-28", status: "expiring" as const },
-]
+import { useState, useEffect, useCallback } from 'react'
+import { DashboardLayout } from '@/components/layout/dashboard-layout'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { StatusBadge } from '@/components/shared/status-badge'
+import { Skeleton } from '@/components/ui/skeleton'
+import { customerApi } from '@/lib/api/customer'
+import type { ExtinguisherRecord } from '@/lib/api/extinguisher'
+import toast from 'react-hot-toast'
+import {
+  FireExtinguisher,
+  Search,
+  Filter,
+  MapPin,
+  Calendar,
+  Eye,
+  CheckCircle,
+  AlertTriangle,
+  XCircle,
+  Package,
+} from 'lucide-react'
 
 export default function CustomerEquipmentPage() {
-  const [searchTerm, setSearchTerm] = useState("")
-  const [statusFilter, setStatusFilter] = useState("all")
-  const [locationFilter, setLocationFilter] = useState("all")
-  const [selectedEquipment, setSelectedEquipment] = useState<typeof equipment[0] | null>(null)
+  const [equipment, setEquipment] = useState<ExtinguisherRecord[]>([])
+  const [loading, setLoading] = useState(true)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [statusFilter, setStatusFilter] = useState('all')
+  const [selected, setSelected] = useState<ExtinguisherRecord | null>(null)
+  const [viewOpen, setViewOpen] = useState(false)
 
-  const filteredEquipment = equipment.filter((item) => {
-    const matchesSearch = item.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.type.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.location.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesStatus = statusFilter === "all" || item.status === statusFilter
-    const matchesLocation = locationFilter === "all" || item.location.includes(locationFilter)
-    return matchesSearch && matchesStatus && matchesLocation
+  const load = useCallback(async () => {
+    setLoading(true)
+    try {
+      const res = await customerApi.getMyExtinguishers()
+      if (res.success && res.data) {
+        setEquipment(res.data.items ?? [])
+      } else {
+        toast.error(res.message || 'Failed to load equipment')
+        setEquipment([])
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to load equipment')
+      setEquipment([])
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => { load() }, [load])
+
+  const filtered = equipment.filter(item => {
+    const q = searchTerm.toLowerCase()
+    const matchSearch =
+      item.serialNumber.toLowerCase().includes(q) ||
+      item.type.toLowerCase().includes(q) ||
+      (item.location ?? '').toLowerCase().includes(q)
+    const matchStatus = statusFilter === 'all' || item.status === statusFilter
+    return matchSearch && matchStatus
   })
+
+  const daysUntilExpiry = (date: string) =>
+    Math.floor((new Date(date).getTime() - Date.now()) / 86400000)
+
+  const activeCount = equipment.filter(e => e.status === 'active').length
+  const expiringSoon = equipment.filter(e => daysUntilExpiry(e.expiryDate) <= 30 && daysUntilExpiry(e.expiryDate) > 0).length
+  const expiredCount = equipment.filter(e => e.status === 'expired').length
 
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">My Equipment</h1>
-            <p className="text-muted-foreground">View and track all your fire safety equipment</p>
-          </div>
-          <Button variant="outline" className="gap-2">
-            <Download className="h-4 w-4" />
-            Export List
-          </Button>
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">My Equipment</h1>
+          <p className="text-muted-foreground">View and track all your fire safety equipment</p>
         </div>
 
+        {/* Stats */}
         <div className="grid gap-4 md:grid-cols-4">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="text-center">
-                <p className="text-3xl font-bold">{equipment.length}</p>
-                <p className="text-sm text-muted-foreground">Total Equipment</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="border-l-4 border-l-success">
-            <CardContent className="pt-6">
-              <div className="text-center">
-                <p className="text-3xl font-bold text-success">{equipment.filter(e => e.status === "active").length}</p>
-                <p className="text-sm text-muted-foreground">Active</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="border-l-4 border-l-warning">
-            <CardContent className="pt-6">
-              <div className="text-center">
-                <p className="text-3xl font-bold text-warning">{equipment.filter(e => e.status === "expiring").length}</p>
-                <p className="text-sm text-muted-foreground">Expiring Soon</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card className="border-l-4 border-l-destructive">
-            <CardContent className="pt-6">
-              <div className="text-center">
-                <p className="text-3xl font-bold text-destructive">{equipment.filter(e => e.status === "expired").length}</p>
-                <p className="text-sm text-muted-foreground">Expired</p>
-              </div>
-            </CardContent>
-          </Card>
+          {[
+            { label: 'Total Equipment', value: equipment.length, color: '' },
+            { label: 'Active', value: activeCount, color: 'text-success', border: 'border-l-4 border-l-success' },
+            { label: 'Expiring Soon', value: expiringSoon, color: 'text-warning', border: 'border-l-4 border-l-warning' },
+            { label: 'Expired', value: expiredCount, color: 'text-destructive', border: 'border-l-4 border-l-destructive' },
+          ].map(({ label, value, color, border }) => (
+            <Card key={label} className={border}>
+              <CardContent className="pt-6 text-center">
+                {loading ? <Skeleton className="h-9 w-16 mx-auto" /> : <p className={`text-3xl font-bold ${color}`}>{value}</p>}
+                <p className="text-sm text-muted-foreground">{label}</p>
+              </CardContent>
+            </Card>
+          ))}
         </div>
 
+        {/* Table/Grid */}
         <Card>
           <CardHeader>
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -93,143 +106,143 @@ export default function CustomerEquipmentPage() {
                   <Input
                     placeholder="Search equipment..."
                     value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-10 sm:w-64"
+                    onChange={e => setSearchTerm(e.target.value)}
+                    className="w-full pl-10 sm:w-56"
                   />
                 </div>
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="w-32">
+                  <SelectTrigger className="w-36">
                     <Filter className="mr-2 h-4 w-4" />
                     <SelectValue placeholder="Status" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Status</SelectItem>
                     <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="expiring">Expiring</SelectItem>
+                    <SelectItem value="maintenance">Maintenance</SelectItem>
                     <SelectItem value="expired">Expired</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Select value={locationFilter} onValueChange={setLocationFilter}>
-                  <SelectTrigger className="w-40">
-                    <MapPin className="mr-2 h-4 w-4" />
-                    <SelectValue placeholder="Location" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Locations</SelectItem>
-                    <SelectItem value="Building A">Building A</SelectItem>
-                    <SelectItem value="Building B">Building B</SelectItem>
-                    <SelectItem value="Building C">Building C</SelectItem>
+                    <SelectItem value="decommissioned">Decommissioned</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {filteredEquipment.map((item) => (
-                <div key={item.id} className="rounded-lg border p-4 hover:shadow-md transition-shadow">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className={`rounded-full p-2 ${
-                        item.status === "active" ? "bg-success/10" :
-                        item.status === "expiring" ? "bg-warning/10" :
-                        "bg-destructive/10"
-                      }`}>
-                        <FireExtinguisher className={`h-5 w-5 ${
-                          item.status === "active" ? "text-success" :
-                          item.status === "expiring" ? "text-warning" :
-                          "text-destructive"
-                        }`} />
-                      </div>
-                      <div>
-                        <p className="font-medium">{item.id}</p>
-                        <p className="text-sm text-muted-foreground">{item.type}</p>
-                      </div>
-                    </div>
-                    <StatusBadge status={item.status} />
-                  </div>
-                  
-                  <div className="mt-4 space-y-2 text-sm">
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <MapPin className="h-4 w-4" />
-                      <span>{item.location}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <Calendar className="h-4 w-4" />
-                      <span>Next: {item.nextInspection}</span>
-                    </div>
-                  </div>
-
-                  <div className="mt-4 flex gap-2">
-                    <Dialog>
-                      <DialogTrigger asChild>
-                        <Button variant="outline" size="sm" className="flex-1 gap-1" onClick={() => setSelectedEquipment(item)}>
-                          <Eye className="h-4 w-4" />
-                          Details
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle>Equipment Details - {item.id}</DialogTitle>
-                        </DialogHeader>
-                        <div className="space-y-4">
-                          <div className="flex items-center justify-center">
-                            <div className="rounded-full bg-primary/10 p-6">
-                              <FireExtinguisher className="h-12 w-12 text-primary" />
-                            </div>
-                          </div>
-                          <div className="grid gap-4 sm:grid-cols-2">
-                            <div>
-                              <p className="text-sm text-muted-foreground">Type</p>
-                              <p className="font-medium">{item.type}</p>
-                            </div>
-                            <div>
-                              <p className="text-sm text-muted-foreground">Status</p>
-                              <StatusBadge status={item.status} />
-                            </div>
-                            <div>
-                              <p className="text-sm text-muted-foreground">Location</p>
-                              <p className="font-medium">{item.location}</p>
-                            </div>
-                            <div>
-                              <p className="text-sm text-muted-foreground">Expiry Date</p>
-                              <p className="font-medium">{item.expiryDate}</p>
-                            </div>
-                            <div>
-                              <p className="text-sm text-muted-foreground">Last Inspection</p>
-                              <p className="font-medium">{item.lastInspection}</p>
-                            </div>
-                            <div>
-                              <p className="text-sm text-muted-foreground">Next Inspection</p>
-                              <p className="font-medium">{item.nextInspection}</p>
-                            </div>
-                          </div>
-                          <div className="flex gap-2">
-                            <Button className="flex-1">Request Service</Button>
-                            <Button variant="outline" className="flex-1">View History</Button>
-                          </div>
-                        </div>
-                      </DialogContent>
-                    </Dialog>
-                    <Button variant="outline" size="sm" className="gap-1">
-                      <QrCode className="h-4 w-4" />
-                      QR
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {filteredEquipment.length === 0 && (
+            {loading ? (
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-40 w-full" />)}
+              </div>
+            ) : filtered.length === 0 ? (
               <div className="py-12 text-center">
-                <FireExtinguisher className="mx-auto h-12 w-12 text-muted-foreground" />
+                <Package className="mx-auto h-12 w-12 text-muted-foreground" />
                 <p className="mt-4 text-lg font-medium">No equipment found</p>
                 <p className="text-sm text-muted-foreground">Try adjusting your search or filters</p>
+              </div>
+            ) : (
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {filtered.map(item => {
+                  const days = daysUntilExpiry(item.expiryDate)
+                  const expiring = days <= 30 && days > 0
+                  return (
+                    <div key={item.id} className="rounded-lg border p-4 hover:shadow-md transition-shadow">
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className={`rounded-full p-2 ${
+                            item.status === 'active' && !expiring ? 'bg-success/10'
+                            : expiring ? 'bg-warning/10'
+                            : 'bg-destructive/10'
+                          }`}>
+                            <FireExtinguisher className={`h-5 w-5 ${
+                              item.status === 'active' && !expiring ? 'text-success'
+                              : expiring ? 'text-warning'
+                              : 'text-destructive'
+                            }`} />
+                          </div>
+                          <div>
+                            <p className="font-mono font-medium">{item.serialNumber}</p>
+                            <p className="text-sm text-muted-foreground">{item.type}</p>
+                          </div>
+                        </div>
+                        <StatusBadge status={expiring ? 'expiring' : item.status} />
+                      </div>
+
+                      <div className="mt-4 space-y-1.5 text-sm text-muted-foreground">
+                        <div className="flex items-center gap-2">
+                          <MapPin className="h-3.5 w-3.5 shrink-0" />
+                          <span className="truncate">{item.location || 'No location set'}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Calendar className="h-3.5 w-3.5 shrink-0" />
+                          <span>Expires {new Date(item.expiryDate).toLocaleDateString()}</span>
+                        </div>
+                        {item.nextInspectionDate && (
+                          <div className="flex items-center gap-2">
+                            <CheckCircle className="h-3.5 w-3.5 shrink-0" />
+                            <span>Next inspection {new Date(item.nextInspectionDate).toLocaleDateString()}</span>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="mt-4">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full gap-1"
+                          onClick={() => { setSelected(item); setViewOpen(true) }}
+                        >
+                          <Eye className="h-4 w-4" /> View Details
+                        </Button>
+                      </div>
+                    </div>
+                  )
+                })}
               </div>
             )}
           </CardContent>
         </Card>
       </div>
+
+      {/* Detail Dialog */}
+      <Dialog open={viewOpen} onOpenChange={setViewOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Equipment Details</DialogTitle>
+          </DialogHeader>
+          {selected && (
+            <div className="space-y-4 py-2">
+              <div className="flex items-center gap-4">
+                <div className="h-16 w-16 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <FireExtinguisher className="h-8 w-8 text-primary" />
+                </div>
+                <div>
+                  <h3 className="font-mono font-semibold text-lg">{selected.serialNumber}</h3>
+                  <p className="text-sm text-muted-foreground">{selected.type} — {selected.capacity}</p>
+                  <StatusBadge status={selected.status} />
+                </div>
+              </div>
+              <div className="grid gap-2.5 pt-4 border-t text-sm">
+                {[
+                  ['Location', selected.location || '—'],
+                  ['Manufacture Date', selected.manufactureDate ? new Date(selected.manufactureDate).toLocaleDateString() : '—'],
+                  ['Expiry Date', new Date(selected.expiryDate).toLocaleDateString()],
+                  ['Last Inspection', selected.lastInspectionDate ? new Date(selected.lastInspectionDate).toLocaleDateString() : '—'],
+                  ['Next Inspection', selected.nextInspectionDate ? new Date(selected.nextInspectionDate).toLocaleDateString() : '—'],
+                ].map(([label, value]) => (
+                  <div key={label} className="flex justify-between">
+                    <span className="text-muted-foreground">{label}</span>
+                    <span className="font-medium">{value}</span>
+                  </div>
+                ))}
+                {selected.notes && (
+                  <div className="pt-3 border-t">
+                    <p className="text-muted-foreground text-xs mb-1">Notes</p>
+                    <p>{selected.notes}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   )
 }

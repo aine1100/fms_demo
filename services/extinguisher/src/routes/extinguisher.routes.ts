@@ -133,7 +133,7 @@ router.get('/catalog', extController.getCatalog); // Public
  *         description: Forbidden
  */
 // Extinguisher Routes
-router.post('/', authenticate, authorize(UserRole.COMPANY), validate(validators.registerExtinguisherSchema), extController.registerExtinguisher);
+router.post('/', authenticate, authorize(UserRole.COMPANY), validate(validators.registerExtinguisherSchemaWithDates), extController.registerExtinguisher);
 /**
  * @swagger
  * /extinguishers:

@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/select'
 import { Flame, Eye, EyeOff, Loader2 } from 'lucide-react'
 import type { UserRole } from '@/lib/types'
+import toast from 'react-hot-toast'
 
 export default function RegisterPage() {
   const router = useRouter()
@@ -27,9 +28,7 @@ export default function RegisterPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
-  // Only customer and company can self-register (backend blocks inspector self-registration)
   const [role, setRole] = useState<'customer' | 'company'>('customer')
-  // Company-specific fields
   const [companyName, setCompanyName] = useState('')
   const [companyPhone, setCompanyPhone] = useState('')
   const [companyAddress, setCompanyAddress] = useState('')
@@ -42,15 +41,21 @@ export default function RegisterPage() {
     setValidationError('')
 
     if (password !== confirmPassword) {
-      setValidationError('Passwords do not match')
+      const msg = 'Passwords do not match'
+      setValidationError(msg)
+      toast.error(msg)
       return
     }
     if (password.length < 6) {
-      setValidationError('Password must be at least 6 characters')
+      const msg = 'Password must be at least 6 characters'
+      setValidationError(msg)
+      toast.error(msg)
       return
     }
     if (role === 'company' && !companyName.trim()) {
-      setValidationError('Company name is required')
+      const msg = 'Company name is required'
+      setValidationError(msg)
+      toast.error(msg)
       return
     }
 
@@ -59,9 +64,18 @@ export default function RegisterPage() {
       ? { companyName, companyPhone, companyAddress }
       : {}
 
-    const success = await register(email, password, fullName, role as UserRole, extra)
-    if (success) {
-      router.push('/verify-otp')
+    const toastId = toast.loading('Creating account...')
+    try {
+      const success = await register(email, password, fullName, role as UserRole, extra)
+      if (success) {
+        toast.success('Account created! Please verify your email.', { id: toastId })
+        setTimeout(() => router.push('/verify-otp'), 1500)
+      } else {
+        const msg = useAuthStore.getState().error || 'Registration failed'
+        toast.error(msg, { id: toastId })
+      }
+    } catch (err: any) {
+      toast.error(err?.message || 'Registration failed', { id: toastId })
     }
   }
 

@@ -4,11 +4,13 @@ import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/lib/store'
+import { authApi } from '@/lib/api/auth'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Flame, Loader2 } from 'lucide-react'
 import type { UserRole } from '@/lib/types'
+import toast from 'react-hot-toast'
 
 // Maps backend role values to their portal routes
 const ROLE_ROUTES: Record<UserRole, string> = {
@@ -65,18 +67,42 @@ export default function VerifyOTPPage() {
     const otpString = otp.join('')
     if (otpString.length !== 6) return
 
-    // Pass the pending email (set during registration) or the logged-in user's email
     const email = _pendingEmail || user?.email || ''
-    const success = await verifyOtp(otpString, email)
-
-    if (success) {
-      if (user) {
-        // Already logged in — go to their portal
-        router.push(ROLE_ROUTES[user.role] ?? '/login')
+    const toastId = toast.loading('Verifying...')
+    try {
+      const success = await verifyOtp(otpString, email)
+      if (success) {
+        toast.success('Email verified successfully!', { id: toastId })
+        if (user) {
+          setTimeout(() => router.push(ROLE_ROUTES[user.role] ?? '/login'), 1500)
+        } else {
+          setTimeout(() => router.push('/login'), 1500)
+        }
       } else {
-        // Just verified after registration — go to login
-        router.push('/login')
+        const msg = useAuthStore.getState().error || 'Invalid OTP'
+        toast.error(msg, { id: toastId })
       }
+    } catch (err: any) {
+      toast.error(err?.message || 'Invalid OTP', { id: toastId })
+    }
+  }
+
+  const handleResend = async () => {
+    const email = _pendingEmail || user?.email || ''
+    if (!email) {
+      toast.error('No email address found. Please register again.')
+      return
+    }
+    const toastId = toast.loading('Resending code...')
+    try {
+      const res = await authApi.requestPasswordReset({ email })
+      if (res.success) {
+        toast.success('A new code has been sent to your email.', { id: toastId })
+      } else {
+        toast.error(res.message || 'Failed to resend code', { id: toastId })
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to resend code', { id: toastId })
     }
   }
 
@@ -149,9 +175,7 @@ export default function VerifyOTPPage() {
               <button
                 type="button"
                 className="text-primary hover:underline font-medium"
-                onClick={() => {
-                  // Could trigger resend here
-                }}
+                onClick={handleResend}
               >
                 Click to resend
               </button>

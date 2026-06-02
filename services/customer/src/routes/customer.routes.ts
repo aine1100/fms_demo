@@ -30,7 +30,7 @@ const router = Router();
  *       201:
  *         description: Customer registered
  */
-router.post('/', authenticate, authorize(UserRole.COMPANY), validate(validators.createCustomerSchema), customerController.createCustomer);
+router.post('/', authenticate, authorize(UserRole.SUPER_ADMIN), validate(validators.createCustomerSchema), customerController.createCustomer);
 
 /**
  * @swagger
@@ -149,7 +149,7 @@ router.get('/:id', authenticate, customerController.getCustomerById);
  *       200:
  *         description: Customer updated
  */
-router.put('/:id', authenticate, authorize(UserRole.COMPANY), validate(validators.updateCustomerSchema), customerController.updateCustomer);
+router.put('/:id', authenticate, authorize(UserRole.SUPER_ADMIN), validate(validators.updateCustomerSchema), customerController.updateCustomer);
 
 /**
  * @swagger
@@ -169,6 +169,6 @@ router.put('/:id', authenticate, authorize(UserRole.COMPANY), validate(validator
  *       200:
  *         description: Customer deleted
  */
-router.delete('/:id', authenticate, authorize(UserRole.COMPANY), customerController.deleteCustomer);
+router.delete('/:id', authenticate, authorize(UserRole.SUPER_ADMIN), customerController.deleteCustomer);
 
 export default router;

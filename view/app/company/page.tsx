@@ -185,7 +185,7 @@ export default function CompanyDashboard() {
                   </p>
                   <p className="text-sm text-muted-foreground">Total revenue from paid invoices</p>
                   <Button variant="outline" size="sm" asChild className="mt-2">
-                    <Link href="/company/invoices">View Invoices <ArrowRight className="ml-1 h-4 w-4" /></Link>
+                    <Link href="/company/payments">View Payments <ArrowRight className="ml-1 h-4 w-4" /></Link>
                   </Button>
                 </div>
               )}
@@ -350,10 +350,10 @@ export default function CompanyDashboard() {
                 <Link href="/company/inspections"><Calendar className="h-5 w-5" /><span>Schedule Inspection</span></Link>
               </Button>
               <Button variant="outline" className="h-auto py-4 flex-col gap-2" asChild>
-                <Link href="/company/customers"><Users className="h-5 w-5" /><span>Add Customer</span></Link>
+                <Link href="/company/customers"><Users className="h-5 w-5" /><span>View Customers</span></Link>
               </Button>
               <Button variant="outline" className="h-auto py-4 flex-col gap-2" asChild>
-                <Link href="/company/invoices"><DollarSign className="h-5 w-5" /><span>Create Invoice</span></Link>
+                <Link href="/company/payments"><DollarSign className="h-5 w-5" /><span>View Payments</span></Link>
               </Button>
             </div>
           </CardContent>

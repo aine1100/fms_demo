@@ -13,6 +13,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { Building2, Bell, Shield, Save, Loader2, Mail, Phone, MapPin } from 'lucide-react'
 import { authApi } from '@/lib/api/auth'
 import { useAuthStore } from '@/lib/store'
+import toast from 'react-hot-toast'
 
 export default function CompanySettingsPage() {
   const { user } = useAuthStore()
@@ -91,12 +92,15 @@ export default function CompanySettingsPage() {
       })
       if (res.success) {
         setProfileSuccess(true)
+        toast.success('Profile updated successfully')
         setTimeout(() => setProfileSuccess(false), 3000)
       } else {
         setProfileError(res.message || 'Update failed')
+        toast.error(res.message || 'Update failed')
       }
     } catch (err: any) {
       setProfileError(err.message || 'Update failed')
+      toast.error(err.message || 'Update failed')
     } finally {
       setProfileSaving(false)
     }
@@ -120,12 +124,15 @@ export default function CompanySettingsPage() {
       if (res.success) {
         setPasswordSuccess(true)
         setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' })
+        toast.success('Password updated successfully')
         setTimeout(() => setPasswordSuccess(false), 3000)
       } else {
         setPasswordError(res.message || 'Password update failed')
+        toast.error(res.message || 'Password update failed')
       }
     } catch (err: any) {
       setPasswordError(err.message || 'Password update failed')
+      toast.error(err.message || 'Password update failed')
     } finally {
       setPasswordSaving(false)
     }

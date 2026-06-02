@@ -18,8 +18,7 @@ import {
   Flame,
   ChevronLeft,
   ChevronRight,
-  X,
-  Bell
+  X
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import type { UserRole } from '@/lib/types'
@@ -45,18 +44,16 @@ const navItems: Record<UserRole, NavItem[]> = {
     { label: 'Customers', href: '/company/customers', icon: <Users className="h-5 w-5" /> },
     { label: 'Inspections', href: '/company/inspections', icon: <Calendar className="h-5 w-5" /> },
     { label: 'Inspectors', href: '/company/inspectors', icon: <UserCog className="h-5 w-5" /> },
-    { label: 'Invoices', href: '/company/invoices', icon: <Receipt className="h-5 w-5" /> },
+    { label: 'Payments', href: '/company/payments', icon: <Receipt className="h-5 w-5" /> },
     { label: 'Reports', href: '/company/reports', icon: <FileText className="h-5 w-5" /> },
     { label: 'Settings', href: '/company/settings', icon: <Settings className="h-5 w-5" /> },
   ],
   customer: [
     { label: 'Dashboard', href: '/customer', icon: <LayoutDashboard className="h-5 w-5" /> },
-    { label: 'My Extinguishers', href: '/customer/extinguishers', icon: <Package className="h-5 w-5" /> },
-    { label: 'Service History', href: '/customer/history', icon: <ClipboardList className="h-5 w-5" /> },
-    { label: 'Alerts', href: '/customer/alerts', icon: <ClipboardList className="h-5 w-5" /> },
+    { label: 'My Equipment', href: '/customer/equipment', icon: <Package className="h-5 w-5" /> },
+    { label: 'Inspections', href: '/customer/inspections', icon: <ClipboardList className="h-5 w-5" /> },
+    { label: 'Service Requests', href: '/customer/service-requests', icon: <Calendar className="h-5 w-5" /> },
     { label: 'Invoices', href: '/customer/invoices', icon: <Receipt className="h-5 w-5" /> },
-    { label: 'Request Service', href: '/customer/request', icon: <Calendar className="h-5 w-5" /> },
-    { label: 'Support', href: '/customer/support', icon: <HelpCircle className="h-5 w-5" /> },
     { label: 'Settings', href: '/customer/settings', icon: <Settings className="h-5 w-5" /> },
   ],
   inspector: [

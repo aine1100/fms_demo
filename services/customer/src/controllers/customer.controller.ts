@@ -4,7 +4,10 @@ import * as customerService from '../services/customer.service';
 
 export const createCustomer = async (req: AuthRequest, res: Response) => {
   try {
-    const data = req.body;
+    const data = {
+      ...req.body,
+      userId: req.body.userId ?? req.user!.userId,
+    };
     if (req.user?.role === UserRole.COMPANY) {
       data.companyId = req.user.companyId;
     }

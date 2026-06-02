@@ -33,7 +33,7 @@ export default function CustomerDashboardIntegrated() {
         // Fetch extinguishers
         const extRes = await customerApi.getMyExtinguishers()
         if (extRes.success) {
-          const exts = extRes.data || []
+          const exts = extRes.data?.items || []
           setExtinguishers(exts)
           
           const active = exts.filter((e: any) => e.status === 'active').length
@@ -52,7 +52,7 @@ export default function CustomerDashboardIntegrated() {
         // Fetch alerts
         const alertRes = await customerApi.getAlerts()
         if (alertRes.success) {
-          setAlerts(alertRes.data || [])
+          setAlerts(alertRes.data?.items || [])
         }
 
         // Fetch inspection history

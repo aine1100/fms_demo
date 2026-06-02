@@ -34,6 +34,8 @@ import { Textarea } from '@/components/ui/textarea'
 import { inspectionApi, type InspectionRecord, type ScheduleInspectionPayload } from '@/lib/api/inspection'
 import { extinguisherApi, type ExtinguisherRecord } from '@/lib/api/extinguisher'
 import { authApi } from '@/lib/api/auth'
+import { downloadCsv } from '@/lib/export'
+import toast from 'react-hot-toast'
 import {
   Plus,
   MoreHorizontal,
@@ -46,6 +48,8 @@ import {
   Loader2,
   Ban,
 } from 'lucide-react'
+
+const UNASSIGNED_INSPECTOR = '__unassigned__'
 
 export default function InspectionsPage() {
   const [inspections, setInspections] = useState<InspectionRecord[]>([])
@@ -188,7 +192,7 @@ export default function InspectionsPage() {
     {
       key: 'result',
       label: 'Result',
-      render: (item) => item.result ? <StatusBadge status={item.result} /> : '—',
+      render: (item) => item.result ? <StatusBadge status={(item.result === 'passed' ? 'pass' : item.result === 'failed' ? 'fail' : item.result) as any} /> : '—',
     },
   ]
 
@@ -219,6 +223,18 @@ export default function InspectionsPage() {
   const inProgressCount = inspections.filter(i => i.status === 'in_progress').length
   const completedCount = inspections.filter(i => i.status === 'completed').length
   const cancelledCount = inspections.filter(i => i.status === 'cancelled').length
+  const handleExport = () => {
+    downloadCsv('company-inspections', inspections, [
+      { header: 'Extinguisher', value: item => item.extinguisher?.serialNumber ?? `#${item.extinguisherId}` },
+      { header: 'Customer', value: item => item.customer?.businessName ?? '' },
+      { header: 'Inspector', value: item => item.inspector ? `${item.inspector.firstName} ${item.inspector.lastName}` : '' },
+      { header: 'Scheduled Date', value: item => new Date(item.scheduledDate).toLocaleDateString() },
+      { header: 'Completed Date', value: item => item.completedDate ? new Date(item.completedDate).toLocaleDateString() : '' },
+      { header: 'Status', value: item => item.status },
+      { header: 'Result', value: item => item.result ?? '' },
+      { header: 'Location', value: item => item.location ?? '' },
+    ])
+  }
 
   return (
     <DashboardLayout requiredRole="company">
@@ -270,7 +286,7 @@ export default function InspectionsPage() {
                 searchKeys={['location']}
                 actions={actions}
                 exportable
-                onExport={() => {}}
+                onExport={handleExport}
               />
             )}
           </CardContent>
@@ -306,11 +322,11 @@ export default function InspectionsPage() {
               <Label>Inspector</Label>
               <Select
                 value={form.inspectorId?.toString() ?? ''}
-                onValueChange={v => setForm(f => ({ ...f, inspectorId: v ? parseInt(v) : undefined }))}
+                onValueChange={v => setForm(f => ({ ...f, inspectorId: v === UNASSIGNED_INSPECTOR ? undefined : parseInt(v) }))}
               >
                 <SelectTrigger><SelectValue placeholder="Select inspector (optional)" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Unassigned</SelectItem>
+                  <SelectItem value={UNASSIGNED_INSPECTOR}>Unassigned</SelectItem>
                   {inspectors.map(ins => (
                     <SelectItem key={ins.id} value={ins.id.toString()}>
                       {ins.firstName} {ins.lastName}
