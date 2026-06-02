@@ -17,6 +17,19 @@ export interface ExtinguisherRecord {
   customer?: { id: number; businessName: string; contactPerson: string };
 }
 
+export interface CatalogItem {
+  id: number;
+  companyId: number;
+  name: string;
+  type: string;
+  capacity: string;
+  description?: string | null;
+  price: string | number;
+  imageUrl?: string | null;
+  isActive: boolean;
+  createdAt: string;
+}
+
 export interface RegisterExtinguisherPayload {
   serialNumber: string;
   type: string;
@@ -53,14 +66,17 @@ export const extinguisherApi = {
     );
   },
 
-  // Catalog
-  getCatalog: (page = 1, limit = 20, filters?: { type?: string; search?: string }) => {
+  // Public catalog — no auth required, shows all companies' listed items
+  getCatalog: (page = 1, limit = 50, filters?: { type?: string; search?: string; companyId?: number }) => {
     const params = new URLSearchParams({ page: page.toString(), limit: limit.toString() });
     if (filters?.type) params.append('type', filters.type);
     if (filters?.search) params.append('search', filters.search);
-    return extinguisherClient.get<{ items: any[]; total: number }>(`/extinguishers/catalog?${params}`);
+    if (filters?.companyId) params.append('companyId', filters.companyId.toString());
+    return extinguisherClient.get<{ items: CatalogItem[]; total: number; page: number; totalPages: number }>(
+      `/extinguishers/catalog?${params}`
+    );
   },
 
-  addCatalogItem: (data: { type: string; capacity: string; description?: string; price?: number }) =>
-    extinguisherClient.post('/extinguishers/catalog', data),
+  addCatalogItem: (data: { name: string; type: string; capacity: string; description?: string; price: number; imageUrl?: string }) =>
+    extinguisherClient.post<CatalogItem>('/extinguishers/catalog', data),
 };

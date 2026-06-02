@@ -1,6 +1,6 @@
 import { db } from '../db/connection';
 import { eq, and, count, desc, sql } from 'drizzle-orm';
-import { invoices, payments } from '../db/schema';
+import { invoices, payments, customers, users } from '../db/schema';
 
 // Helper to generate Invoice Number
 const generateInvoiceNumber = async () => {
@@ -18,6 +18,35 @@ const generateReceiptNumber = async () => {
   return `RCP-${year}-${nextId.toString().padStart(4, '0')}`;
 };
 
+const buildInvoiceWithCustomer = async (invoiceList: any[]) => {
+  return Promise.all(invoiceList.map(async (invoice) => {
+    if (!invoice.customerId) return invoice;
+    
+    const [customer] = await db.select({
+      id: customers.id,
+      businessName: customers.businessName,
+      contactPerson: customers.contactPerson,
+      user: {
+        firstName: users.firstName,
+        lastName: users.lastName,
+      }
+    }).from(customers)
+      .leftJoin(users, eq(customers.userId, users.id))
+      .where(eq(customers.id, invoice.customerId));
+    
+    return {
+      ...invoice,
+      customer: customer ? {
+        id: customer.id,
+        businessName: customer.businessName,
+        contactPerson: customer.contactPerson,
+        firstName: customer.user?.firstName,
+        lastName: customer.user?.lastName,
+      } : null,
+    };
+  }));
+};
+
 export const createInvoice = async (data: any) => {
   const invoiceNumber = await generateInvoiceNumber();
   const tax = data.tax || 0;
@@ -32,7 +61,8 @@ export const createInvoice = async (data: any) => {
     dueDate: new Date(data.dueDate),
   }).returning();
 
-  return invoice;
+  const [enriched] = await buildInvoiceWithCustomer([invoice]);
+  return enriched;
 };
 
 export const getInvoices = async (limit: number, offset: number, filters: any) => {
@@ -48,13 +78,18 @@ export const getInvoices = async (limit: number, offset: number, filters: any) =
     db.select().from(invoices).where(whereClause).limit(limit).offset(offset).orderBy(desc(invoices.createdAt)),
     db.select({ total: count() }).from(invoices).where(whereClause)
   ]);
+
+  const enrichedItems = await buildInvoiceWithCustomer(items);
   
-  return { items, total };
+  return { items: enrichedItems, total };
 };
 
 export const getInvoiceById = async (id: number) => {
   const [invoice] = await db.select().from(invoices).where(eq(invoices.id, id));
-  return invoice;
+  if (!invoice) return null;
+  
+  const [enriched] = await buildInvoiceWithCustomer([invoice]);
+  return enriched;
 };
 
 export const recordPayment = async (data: any, companyId: number, customerId: number) => {
@@ -70,11 +105,13 @@ export const recordPayment = async (data: any, companyId: number, customerId: nu
     }).returning();
 
     // Auto-update invoice status to paid
-    await tx.update(invoices)
+    const [updatedInvoice] = await tx.update(invoices)
       .set({ status: 'paid' as any, updatedAt: new Date() })
-      .where(eq(invoices.id, data.invoiceId));
+      .where(eq(invoices.id, data.invoiceId))
+      .returning();
 
-    return payment;
+    const [enriched] = await buildInvoiceWithCustomer([updatedInvoice]);
+    return { payment, invoice: enriched };
   });
 };
 

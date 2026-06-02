@@ -29,6 +29,7 @@ import {
   Loader2,
   Ban,
 } from 'lucide-react'
+import Link from 'next/link'
 
 export default function CustomerServiceRequestsPage() {
   const [inspections, setInspections] = useState<InspectionRecord[]>([])
@@ -284,22 +285,24 @@ export default function CustomerServiceRequestsPage() {
           <div className="space-y-4 py-2">
             <div className="space-y-2">
               <Label>Extinguisher *</Label>
-              <Select value={form.extinguisherId} onValueChange={v => setForm(f => ({ ...f, extinguisherId: v }))}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select your extinguisher" />
-                </SelectTrigger>
-                <SelectContent>
-                  {extinguishers.length === 0 ? (
-                    <SelectItem value="" disabled>No extinguishers found</SelectItem>
-                  ) : (
-                    extinguishers.map(ext => (
+              {extinguishers.length === 0 ? (
+                <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+                  No extinguishers found. Please add equipment first or <Link href="/customer/buy-equipment" className="font-medium underline">buy one</Link>.
+                </div>
+              ) : (
+                <Select value={form.extinguisherId} onValueChange={v => setForm(f => ({ ...f, extinguisherId: v }))}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select your extinguisher" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {extinguishers.map(ext => (
                       <SelectItem key={ext.id} value={ext.id.toString()}>
                         {ext.serialNumber} — {ext.location || ext.type}
                       </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
             <div className="space-y-2">
               <Label>Preferred Date *</Label>

@@ -3,12 +3,12 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { 
-  LayoutDashboard, 
-  Building2, 
-  Users, 
-  UserCog, 
-  FileText, 
+import {
+  LayoutDashboard,
+  Building2,
+  Users,
+  UserCog,
+  FileText,
   Settings,
   Package,
   Calendar,
@@ -18,7 +18,9 @@ import {
   Flame,
   ChevronLeft,
   ChevronRight,
-  X
+  X,
+  ShoppingCart,
+  ShoppingBag
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import type { UserRole } from '@/lib/types'
@@ -41,6 +43,7 @@ const navItems: Record<UserRole, NavItem[]> = {
   company: [
     { label: 'Dashboard', href: '/company', icon: <LayoutDashboard className="h-5 w-5" /> },
     { label: 'Inventory', href: '/company/inventory', icon: <Package className="h-5 w-5" /> },
+    { label: 'Catalog', href: '/company/catalog', icon: <ShoppingBag className="h-5 w-5" /> },
     { label: 'Customers', href: '/company/customers', icon: <Users className="h-5 w-5" /> },
     { label: 'Inspections', href: '/company/inspections', icon: <Calendar className="h-5 w-5" /> },
     { label: 'Inspectors', href: '/company/inspectors', icon: <UserCog className="h-5 w-5" /> },
@@ -51,6 +54,7 @@ const navItems: Record<UserRole, NavItem[]> = {
   customer: [
     { label: 'Dashboard', href: '/customer', icon: <LayoutDashboard className="h-5 w-5" /> },
     { label: 'My Equipment', href: '/customer/equipment', icon: <Package className="h-5 w-5" /> },
+    { label: 'Buy Equipment', href: '/customer/buy-equipment', icon: <ShoppingCart className="h-5 w-5" /> },
     { label: 'Inspections', href: '/customer/inspections', icon: <ClipboardList className="h-5 w-5" /> },
     { label: 'Service Requests', href: '/customer/service-requests', icon: <Calendar className="h-5 w-5" /> },
     { label: 'Invoices', href: '/customer/invoices', icon: <Receipt className="h-5 w-5" /> },
@@ -81,13 +85,13 @@ export function Sidebar({ role, isOpen, onToggle, isMobile = false }: SidebarPro
     <>
       {/* Mobile Overlay */}
       {isMobile && isOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/50 z-40 lg:hidden"
           onClick={onToggle}
         />
       )}
-      
-      <aside 
+
+      <aside
         className={cn(
           "fixed top-0 left-0 z-50 h-full bg-sidebar border-r border-sidebar-border transition-all duration-300 flex flex-col",
           isOpen ? "w-64" : "w-20",
@@ -124,8 +128,8 @@ export function Sidebar({ role, isOpen, onToggle, isMobile = false }: SidebarPro
                     onClick={isMobile ? onToggle : undefined}
                     className={cn(
                       "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
-                      isActive 
-                        ? "bg-sidebar-accent text-sidebar-primary" 
+                      isActive
+                        ? "bg-sidebar-accent text-sidebar-primary"
                         : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
                     )}
                   >

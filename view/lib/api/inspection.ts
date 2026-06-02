@@ -14,7 +14,7 @@ export interface InspectionRecord {
   location?: string;
   extinguisher?: { id: number; serialNumber: string; type: string; location: string };
   inspector?: { id: number; firstName: string; lastName: string; email: string };
-  customer?: { id: number; businessName: string; contactPerson: string };
+  customer?: { id: number; businessName: string; contactPerson: string; firstName?: string; lastName?: string };
 }
 
 export interface ScheduleInspectionPayload {
